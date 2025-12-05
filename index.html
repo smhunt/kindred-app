@@ -84,53 +84,51 @@
   <!-- Babel for JSX -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-  <!-- Make React hooks available globally -->
+  <!-- App Loader -->
   <script>
-    window.useState = React.useState;
-    window.useRef = React.useRef;
-    window.useEffect = React.useEffect;
-    window.useCallback = React.useCallback;
-    window.useMemo = React.useMemo;
-  </script>
+    // Wait for Babel to load, then fetch and run the app
+    document.addEventListener('DOMContentLoaded', function() {
+      fetch('./personality-mentor.jsx')
+        .then(response => response.text())
+        .then(code => {
+          // Prepend React hook declarations
+          const hookSetup = `
+            const useState = React.useState;
+            const useRef = React.useRef;
+            const useEffect = React.useEffect;
+            const useCallback = React.useCallback;
+            const useMemo = React.useMemo;
+          `;
 
-  <!-- App -->
-  <script type="text/babel" data-type="module">
-    // Fetch and execute the JSX file
-    fetch('./personality-mentor.jsx')
-      .then(response => response.text())
-      .then(code => {
-        // Transform the code to work in browser
-        // Remove the import statement and export default
-        const browserCode = code
-          .replace(/^import React.*$/m, '// React loaded from CDN')
-          .replace(/export default /g, 'window.PersonalityMentor = ');
+          // Transform the code to work in browser
+          const browserCode = code
+            .replace(/^import React.*$/m, hookSetup)
+            .replace(/export default /g, 'window.PersonalityMentor = ');
 
-        // Create and execute the transformed script
-        const transformedCode = Babel.transform(browserCode, {
-          presets: ['react']
-        }).code;
+          // Create and execute the transformed script
+          const transformedCode = Babel.transform(browserCode, {
+            presets: ['react']
+          }).code;
 
-        // Execute the code in global scope
-        const script = document.createElement('script');
-        script.textContent = transformedCode;
-        document.body.appendChild(script);
+          // Execute the code in global scope
+          const script = document.createElement('script');
+          script.textContent = transformedCode;
+          document.body.appendChild(script);
 
-        // Render the app
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(React.createElement(window.PersonalityMentor));
-      })
-      .catch(error => {
-        console.error('Failed to load app:', error);
-        document.getElementById('root').innerHTML = `
-          <div class="loading-screen">
-            <div style="color: #DC2626; font-size: 18px; margin-bottom: 8px;">Failed to load app</div>
-            <div style="color: #6B7280; font-size: 14px;">${error.message}</div>
-            <button onclick="location.reload()" style="margin-top: 16px; padding: 10px 20px; background: #C2410C; color: white; border: none; border-radius: 8px; cursor: pointer;">
-              Retry
-            </button>
-          </div>
-        `;
-      });
+          // Render the app
+          const root = ReactDOM.createRoot(document.getElementById('root'));
+          root.render(React.createElement(window.PersonalityMentor));
+        })
+        .catch(error => {
+          console.error('Failed to load app:', error);
+          document.getElementById('root').innerHTML =
+            '<div class="loading-screen">' +
+              '<div style="color: #DC2626; font-size: 18px; margin-bottom: 8px;">Failed to load app</div>' +
+              '<div style="color: #6B7280; font-size: 14px;">' + error.message + '</div>' +
+              '<button onclick="location.reload()" style="margin-top: 16px; padding: 10px 20px; background: #C2410C; color: white; border: none; border-radius: 8px; cursor: pointer;">Retry</button>' +
+            '</div>';
+        });
+    });
   </script>
 </body>
 </html>
