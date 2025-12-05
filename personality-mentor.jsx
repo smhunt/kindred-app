@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 
 // API Proxy URL - Update this after deploying your Cloudflare Worker
 // Deploy instructions: see worker/README.md
-const API_PROXY_URL = 'https://kindred-api.seanhunt.workers.dev';
+const API_PROXY_URL = 'https://kindred-api.ecoworks.workers.dev';
 
 // Illustrations as simple SVG components
 const Illustrations = {
