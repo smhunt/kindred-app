@@ -88,7 +88,7 @@
   <script>
     // Wait for Babel to load, then fetch and run the app
     document.addEventListener('DOMContentLoaded', function() {
-      fetch('./personality-mentor.jsx')
+      fetch('./personality-mentor.jsx?v=' + Date.now())
         .then(response => response.text())
         .then(code => {
           // Prepend React hook declarations
