@@ -803,6 +803,13 @@ export default function PersonalityMentor() {
       recognitionRef.current.onerror = (event) => {
         console.warn('[Kindred] Speech recognition error:', event.error);
         setIsListening(false);
+        if (event.error === 'not-allowed') {
+          alert('Microphone access denied. Please click the lock icon in your address bar, set Microphone to "Allow", and reload the page.');
+        } else if (event.error === 'no-speech') {
+          // Silent fail - user just didn't speak
+        } else {
+          alert(`Voice input error: ${event.error}. Please try again.`);
+        }
       };
 
       recognitionRef.current.onend = () => {
