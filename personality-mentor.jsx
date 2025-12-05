@@ -2474,11 +2474,12 @@ STYLE: Be warm but concise—2-3 paragraphs max. Use cognitive function shorthan
         </div>
 
         {/* Floating Suggestions Panel - People-First Design */}
-        {/* Mobile: overlay at 75% width, Desktop: side panel */}
+        {/* Mobile: overlay at 50% width (chat still usable), Desktop: side panel */}
         {(showSuggestions || !isMobile) && (
         <div style={{
-          width: isMobile ? (showSuggestions ? '75%' : '0') : (showSuggestions ? '320px' : '40px'),
-          maxWidth: isMobile ? '320px' : 'none',
+          width: isMobile ? (showSuggestions ? '50%' : '0') : (showSuggestions ? '320px' : '40px'),
+          minWidth: isMobile && showSuggestions ? '200px' : 'auto',
+          maxWidth: isMobile ? '280px' : 'none',
           position: isMobile ? 'fixed' : 'relative',
           right: isMobile ? 0 : 'auto',
           top: isMobile ? 0 : 'auto',
@@ -2766,14 +2767,17 @@ STYLE: Be warm but concise—2-3 paragraphs max. Use cognitive function shorthan
         </div>
         )}
 
-        {/* Mobile backdrop when panel is open */}
+        {/* Mobile: tap outside to close (transparent overlay) */}
         {isMobile && showSuggestions && (
           <div
             onClick={() => setShowSuggestions(false)}
             style={{
               position: 'fixed',
-              inset: 0,
-              background: 'rgba(0,0,0,0.3)',
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: '50%',
+              background: 'transparent',
               zIndex: 40
             }}
           />
