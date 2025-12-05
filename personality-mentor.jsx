@@ -676,7 +676,16 @@ export default function PersonalityMentor() {
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [showDemoModal, setShowDemoModal] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(true);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile viewport
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
   
   // Enhanced suggestions system state
   const [answeredSuggestions, setAnsweredSuggestions] = useState(new Set());
@@ -2465,14 +2474,24 @@ STYLE: Be warm but concise—2-3 paragraphs max. Use cognitive function shorthan
         </div>
 
         {/* Floating Suggestions Panel - People-First Design */}
-        <div style={{ 
-          width: showSuggestions ? '320px' : '40px', 
-          borderLeft: '1px solid #E5E7EB', 
+        {/* Mobile: overlay at 75% width, Desktop: side panel */}
+        {(showSuggestions || !isMobile) && (
+        <div style={{
+          width: isMobile ? (showSuggestions ? '75%' : '0') : (showSuggestions ? '320px' : '40px'),
+          maxWidth: isMobile ? '320px' : 'none',
+          position: isMobile ? 'fixed' : 'relative',
+          right: isMobile ? 0 : 'auto',
+          top: isMobile ? 0 : 'auto',
+          bottom: isMobile ? 0 : 'auto',
+          zIndex: isMobile ? 50 : 'auto',
+          borderLeft: isMobile ? 'none' : '1px solid #E5E7EB',
           background: '#FAFAFA',
-          transition: 'width 0.3s ease',
+          transition: 'width 0.3s ease, transform 0.3s ease',
+          transform: isMobile && !showSuggestions ? 'translateX(100%)' : 'translateX(0)',
           display: 'flex',
           flexDirection: 'column',
-          overflow: 'hidden'
+          overflow: 'hidden',
+          boxShadow: isMobile && showSuggestions ? '-4px 0 20px rgba(0,0,0,0.15)' : 'none'
         }}>
           {/* Toggle button */}
           <button
@@ -2745,6 +2764,50 @@ STYLE: Be warm but concise—2-3 paragraphs max. Use cognitive function shorthan
             </div>
           )}
         </div>
+        )}
+
+        {/* Mobile backdrop when panel is open */}
+        {isMobile && showSuggestions && (
+          <div
+            onClick={() => setShowSuggestions(false)}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0,0,0,0.3)',
+              zIndex: 40
+            }}
+          />
+        )}
+
+        {/* Mobile floating button to open suggestions */}
+        {isMobile && !showSuggestions && people.length > 0 && (
+          <button
+            onClick={() => setShowSuggestions(true)}
+            style={{
+              position: 'fixed',
+              right: '16px',
+              bottom: '80px',
+              width: '48px',
+              height: '48px',
+              borderRadius: '50%',
+              background: s.accent,
+              color: 'white',
+              border: 'none',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 30
+            }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
+            </svg>
+          </button>
+        )}
       </div>
 
       <div style={{ background: 'white', borderTop: '1px solid #E5E7EB', padding: '14px 20px' }}>
