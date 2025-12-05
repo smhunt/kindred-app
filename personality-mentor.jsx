@@ -1,5 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 
+// API Proxy URL - Update this after deploying your Cloudflare Worker
+// Deploy instructions: see worker/README.md
+const API_PROXY_URL = 'https://kindred-api.seanhunt.workers.dev';
+
 // Illustrations as simple SVG components
 const Illustrations = {
   Welcome: () => (
@@ -706,7 +710,6 @@ export default function PersonalityMentor() {
   });
   const [gradeLevel, setGradeLevel] = useState('adult'); // child, teen, adult, senior
   const [isListening, setIsListening] = useState(false);
-  const [apiKey, setApiKey] = useState(''); // User's Anthropic API key
   const recognitionRef = useRef(null);
   const messagesEndRef = useRef(null);
   
@@ -726,7 +729,6 @@ export default function PersonalityMentor() {
         if (state.voiceSettings) setVoiceSettings(state.voiceSettings);
         if (state.gradeLevel) setGradeLevel(state.gradeLevel);
         if (typeof state.isMuted === 'boolean') setIsMuted(state.isMuted);
-        if (state.apiKey) setApiKey(state.apiKey);
         // If we have a user, go to chat view
         if (state.user && state.messages?.length > 0) {
           setView('chat');
@@ -755,14 +757,13 @@ export default function PersonalityMentor() {
         voiceSettings,
         gradeLevel,
         isMuted,
-        apiKey,
         savedAt: new Date().toISOString()
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch (e) {
       console.warn('[Kindred] Could not save session:', e);
     }
-  }, [user, people, messages, answeredSuggestions, voiceSettings, gradeLevel, isMuted, apiKey]);
+  }, [user, people, messages, answeredSuggestions, voiceSettings, gradeLevel, isMuted]);
   
   // Clear saved session
   const clearSession = () => {
@@ -1061,21 +1062,12 @@ Types represented: ${Object.entries(typeDistribution).map(([t, c]) => `${t}${c >
 Analyze: 1) Overall group dynamics and energy, 2) Natural leadership patterns, 3) Potential friction points, 4) How I (${currentUser.type}) fit in. Be specific about who works well together.`;
 
     setMessages([{ role: 'user', content: `Analyze my ${demo.category === 'classroom' ? 'class' : demo.category === 'sports' ? 'team' : 'group'}: ${demo.name}` }]);
-    
-    if (!apiKey) {
-      setMessages(prev => [...prev, { role: 'assistant', content: `I've loaded **${demo.name}** with ${newPeople.length} people. To get AI insights, add your Anthropic API key in Settings (gear icon).` }]);
-      setIsLoading(false);
-      return;
-    }
 
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      const response = await fetch(API_PROXY_URL, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true'
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           model: 'claude-3-5-haiku-20241022',
@@ -1091,12 +1083,12 @@ STYLE: Start with a punchy summary stat (e.g. "This is a highly extroverted grou
 
       const data = await response.json();
       if (data.error) {
-        setMessages(prev => [...prev, { role: 'assistant', content: `API Error: ${data.error.message}. Check your API key in Settings.` }]);
+        setMessages(prev => [...prev, { role: 'assistant', content: `API Error: ${data.error.message || 'Unknown error'}` }]);
       } else {
         setMessages(prev => [...prev, { role: 'assistant', content: data.content?.map(block => block.text || '').join('') || 'Analysis complete.' }]);
       }
     } catch (err) {
-      setMessages(prev => [...prev, { role: 'assistant', content: `I've loaded **${demo.name}** with ${newPeople.length} people. Connection error - check your API key in Settings.` }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: `I've loaded **${demo.name}** with ${newPeople.length} people. Connection error - please try again.` }]);
     } finally {
       setIsLoading(false);
     }
@@ -1227,11 +1219,6 @@ STYLE: Start with a punchy summary stat (e.g. "This is a highly extroverted grou
   const sendMessageWithContent = async (userMessage) => {
     if (!userMessage || isLoading) return;
 
-    if (!apiKey) {
-      setMessages(prev => [...prev, { role: 'assistant', content: 'Please add your Anthropic API key in Settings (gear icon) to chat with me.' }]);
-      return;
-    }
-
     stopSpeaking(); // Stop current speech, auto-speak will handle new response
     setIsLoading(true);
 
@@ -1250,13 +1237,10 @@ COMMUNICATION LEVEL: ${gradeLevelInstruction}
 
 STYLE: Be warm but concise—2-3 paragraphs max. Use cognitive function shorthand (Ne-dom, Si-aux, etc.) when discussing personality dynamics—tooltips will explain these to users. One key insight per response. End with a question or suggestion.`;
 
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      const response = await fetch(API_PROXY_URL, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true'
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           model: 'claude-3-5-haiku-20241022',
@@ -1268,13 +1252,13 @@ STYLE: Be warm but concise—2-3 paragraphs max. Use cognitive function shorthan
 
       const data = await response.json();
       if (data.error) {
-        setMessages(prev => [...prev, { role: 'assistant', content: `API Error: ${data.error.message}. Check your API key in Settings.` }]);
+        setMessages(prev => [...prev, { role: 'assistant', content: `API Error: ${data.error.message || 'Unknown error'}` }]);
       } else {
         const assistantMessage = data.content?.map(block => block.text || '').join('') || 'I encountered an issue. Please try again.';
         setMessages(prev => [...prev, { role: 'assistant', content: assistantMessage }]);
       }
     } catch (error) {
-      setMessages(prev => [...prev, { role: 'assistant', content: 'Connection error. Check your API key in Settings.' }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: 'Connection error. Please try again.' }]);
     } finally {
       setIsLoading(false);
     }
@@ -1282,12 +1266,6 @@ STYLE: Be warm but concise—2-3 paragraphs max. Use cognitive function shorthan
 
   const getRelationshipInsights = async () => {
     if (selectedPeople.length === 0) return;
-
-    if (!apiKey) {
-      setMessages(prev => [...prev, { role: 'assistant', content: 'Please add your Anthropic API key in Settings (gear icon) to get relationship insights.' }]);
-      setView('chat');
-      return;
-    }
 
     stopSpeaking(); // Stop current speech
 
@@ -1303,13 +1281,10 @@ STYLE: Be warm but concise—2-3 paragraphs max. Use cognitive function shorthan
     setSelectedPeople([]);
 
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      const response = await fetch(API_PROXY_URL, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true'
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           model: 'claude-3-5-haiku-20241022',
@@ -1321,12 +1296,12 @@ STYLE: Be warm but concise—2-3 paragraphs max. Use cognitive function shorthan
 
       const data = await response.json();
       if (data.error) {
-        setMessages(prev => [...prev, { role: 'assistant', content: `API Error: ${data.error.message}. Check your API key in Settings.` }]);
+        setMessages(prev => [...prev, { role: 'assistant', content: `API Error: ${data.error.message || 'Unknown error'}` }]);
       } else {
         setMessages(prev => [...prev, { role: 'assistant', content: data.content?.map(block => block.text || '').join('') || 'Error occurred.' }]);
       }
     } catch {
-      setMessages(prev => [...prev, { role: 'assistant', content: 'Connection error. Check your API key in Settings.' }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: 'Connection error. Please try again.' }]);
     } finally {
       setIsLoading(false);
     }
@@ -2354,15 +2329,10 @@ STYLE: Be warm but concise—2-3 paragraphs max. Use cognitive function shorthan
               onClick={e => e.stopPropagation()}
             >
               <div style={{ padding: '20px', borderBottom: '1px solid #E5E7EB', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>Settings</h3>
+                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>Voice Settings</h3>
                 <button onClick={() => setShowSettings(false)} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#9CA3AF' }}>×</button>
               </div>
               <div style={{ flex: 1, padding: '20px', overflowY: 'auto' }}>
-                <div style={{ marginBottom: '24px', paddingBottom: '20px', borderBottom: '1px solid #E5E7EB' }}>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>Anthropic API Key</label>
-                  <input type="password" value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="sk-ant-..." style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #D1D5DB', fontSize: '14px', fontFamily: 'monospace' }} />
-                  <p style={{ fontSize: '11px', color: '#9CA3AF', marginTop: '6px' }}>Get your key at <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer" style={{ color: s.accent }}>console.anthropic.com</a></p>
-                </div>
                 <div style={{ marginBottom: '24px' }}>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>Voice</label>
                   <select value={voiceSettings.voiceIndex} onChange={e => setVoiceSettings(prev => ({ ...prev, voiceIndex: parseInt(e.target.value) }))} style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #D1D5DB', fontSize: '14px', background: 'white' }}>
@@ -2987,35 +2957,11 @@ STYLE: Be warm but concise—2-3 paragraphs max. Use cognitive function shorthan
             onClick={e => e.stopPropagation()}
           >
             <div style={{ padding: '20px', borderBottom: '1px solid #E5E7EB', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>Settings</h3>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>Voice Settings</h3>
               <button onClick={() => setShowSettings(false)} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#9CA3AF' }}>×</button>
             </div>
 
             <div style={{ flex: 1, padding: '20px', overflowY: 'auto' }}>
-              {/* API Key */}
-              <div style={{ marginBottom: '24px', paddingBottom: '20px', borderBottom: '1px solid #E5E7EB' }}>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                  Anthropic API Key
-                </label>
-                <input
-                  type="password"
-                  value={apiKey}
-                  onChange={e => setApiKey(e.target.value)}
-                  placeholder="sk-ant-..."
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    borderRadius: '8px',
-                    border: '1px solid #D1D5DB',
-                    fontSize: '14px',
-                    fontFamily: 'monospace'
-                  }}
-                />
-                <p style={{ fontSize: '11px', color: '#9CA3AF', marginTop: '6px' }}>
-                  Get your key at <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer" style={{ color: s.accent }}>console.anthropic.com</a>
-                </p>
-              </div>
-
               {/* Voice Selection */}
               <div style={{ marginBottom: '24px' }}>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
