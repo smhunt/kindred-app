@@ -2405,29 +2405,13 @@ STYLE: Be warm but concise—2-3 paragraphs max. Use cognitive function shorthan
             </div>
           </div>
           <div style={{ display: 'flex', gap: '6px' }}>
-            <button 
-              onClick={() => setShowHowItWorks(true)}
-              style={{ ...s.btn, background: '#F3F4F6', color: '#374151', fontSize: '12px', padding: '6px 10px' }}
-              title="How it works"
-            >
-              <span style={{ fontWeight: '600' }}>?</span>
-            </button>
-            <button 
-              onClick={() => setShowSettings(true)}
-              style={{ ...s.btn, background: '#F3F4F6', color: '#374151', fontSize: '12px', padding: '6px 10px' }}
-              title="Voice settings"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <circle cx="12" cy="12" r="3"/><path d="M12 1v4m0 14v4m11-11h-4M5 12H1m16.95-6.95l-2.83 2.83M9.88 14.12l-2.83 2.83m0-9.9l2.83 2.83m4.24 4.24l2.83 2.83"/>
-              </svg>
-            </button>
-            <button 
-              onClick={toggleMute} 
-              style={{ 
-                ...s.btn, 
-                background: isMuted ? '#FEE2E2' : isSpeaking ? '#D1FAE5' : '#F3F4F6', 
-                color: isMuted ? '#991B1B' : isSpeaking ? '#065F46' : '#374151', 
-                fontSize: '12px', 
+            <button
+              onClick={toggleMute}
+              style={{
+                ...s.btn,
+                background: isMuted ? '#FEE2E2' : isSpeaking ? '#D1FAE5' : '#F3F4F6',
+                color: isMuted ? '#991B1B' : isSpeaking ? '#065F46' : '#374151',
+                fontSize: '12px',
                 padding: '6px 12px',
                 display: 'flex',
                 alignItems: 'center',
@@ -2442,6 +2426,15 @@ STYLE: Be warm but concise—2-3 paragraphs max. Use cognitive function shorthan
                 )}
               </svg>
               {isMuted ? 'Muted' : isSpeaking ? 'Speaking' : 'Audio'}
+            </button>
+            <button
+              onClick={() => setShowSettings(true)}
+              style={{ ...s.btn, background: '#F3F4F6', color: '#374151', fontSize: '12px', padding: '6px 10px' }}
+              title="Settings"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+              </svg>
             </button>
             <button onClick={() => { setSurveyTarget(null); setSurveyAnswers({}); setCurrentQuestion(0); setQuestionAnim('enter'); setView('survey'); }} style={{ ...s.btn, background: '#F3F4F6', color: '#374151', fontSize: '12px', padding: '6px 12px' }}>
               {user?.type ? 'Retake' : 'Survey'}
@@ -2782,6 +2775,44 @@ STYLE: Be warm but concise—2-3 paragraphs max. Use cognitive function shorthan
             }}
           />
         )}
+
+        {/* Floating "How It Works" button - bottom left, semi-transparent until hover */}
+        <button
+          onClick={() => setShowHowItWorks(true)}
+          style={{
+            position: 'fixed',
+            left: '16px',
+            bottom: '80px',
+            width: '40px',
+            height: '40px',
+            borderRadius: '50%',
+            background: 'rgba(255,255,255,0.5)',
+            color: '#9CA3AF',
+            border: '1px solid rgba(156,163,175,0.3)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 30,
+            transition: 'all 0.2s ease',
+            fontSize: '18px',
+            fontWeight: '600'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'white';
+            e.currentTarget.style.color = '#374151';
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'rgba(255,255,255,0.5)';
+            e.currentTarget.style.color = '#9CA3AF';
+            e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+          }}
+          title="How it works"
+        >
+          ?
+        </button>
 
         {/* Mobile floating button to open suggestions */}
         {isMobile && !showSuggestions && people.length > 0 && (
