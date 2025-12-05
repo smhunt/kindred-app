@@ -588,6 +588,20 @@ const CHANGELOG_DATA = [
       { type: 'added', text: 'Built-in test suite (window.testSuggestions)' },
       { type: 'changed', text: 'Panel width 280→320px for people cards' }
     ]
+  },
+  {
+    session: 'Session 5 — Accessibility',
+    date: 'Dec 5, 2024',
+    duration: '~15 min',
+    messages: '2 user messages',
+    cost: '~$2.00',
+    items: [
+      { type: 'added', text: 'Grade level slider (child/teen/adult/senior)' },
+      { type: 'added', text: 'Voice input with Web Speech API' },
+      { type: 'added', text: 'Email summary sharing via mailto:' },
+      { type: 'changed', text: 'System prompt adapts to selected complexity level' },
+      { type: 'changed', text: 'Version bump to v0.5' }
+    ]
   }
 ];
 
@@ -681,6 +695,9 @@ export default function PersonalityMentor() {
     rate: 0.78,
     pitch: 1.0
   });
+  const [gradeLevel, setGradeLevel] = useState('adult'); // child, teen, adult, senior
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef(null);
   const messagesEndRef = useRef(null);
   
   // localStorage key
@@ -697,6 +714,7 @@ export default function PersonalityMentor() {
         if (state.messages) setMessages(state.messages);
         if (state.answeredSuggestions) setAnsweredSuggestions(new Set(state.answeredSuggestions));
         if (state.voiceSettings) setVoiceSettings(state.voiceSettings);
+        if (state.gradeLevel) setGradeLevel(state.gradeLevel);
         if (typeof state.isMuted === 'boolean') setIsMuted(state.isMuted);
         // If we have a user, go to chat view
         if (state.user && state.messages?.length > 0) {
@@ -724,6 +742,7 @@ export default function PersonalityMentor() {
         messages,
         answeredSuggestions: [...answeredSuggestions],
         voiceSettings,
+        gradeLevel,
         isMuted,
         savedAt: new Date().toISOString()
       };
@@ -731,7 +750,7 @@ export default function PersonalityMentor() {
     } catch (e) {
       console.warn('[Kindred] Could not save session:', e);
     }
-  }, [user, people, messages, answeredSuggestions, voiceSettings, isMuted]);
+  }, [user, people, messages, answeredSuggestions, voiceSettings, gradeLevel, isMuted]);
   
   // Clear saved session
   const clearSession = () => {
@@ -741,11 +760,93 @@ export default function PersonalityMentor() {
       setPeople([]);
       setMessages([]);
       setAnsweredSuggestions(new Set());
+      setGradeLevel('adult');
       setView('splash');
       console.log('[Kindred] Session cleared');
     } catch (e) {
       console.warn('[Kindred] Could not clear session:', e);
     }
+  };
+
+  // Grade level descriptions for system prompt
+  const GRADE_LEVEL_PROMPTS = {
+    child: 'Use very simple words (1-2 syllable), short sentences, fun examples with animals or games, no abstract concepts. Target age: 6-10.',
+    teen: 'Use casual language, relatable examples about school/friends/social media, some slang is ok. Target age: 13-17.',
+    adult: 'Use professional language, nuanced explanations, workplace/relationship examples. Target age: 18-65.',
+    senior: 'Use clear, respectful language, avoid tech jargon, include life wisdom examples, larger text references. Target age: 65+.'
+  };
+
+  // Speech recognition setup
+  useEffect(() => {
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = false;
+      recognitionRef.current.interimResults = false;
+      recognitionRef.current.lang = 'en-US';
+
+      recognitionRef.current.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        setInputValue(prev => prev ? prev + ' ' + transcript : transcript);
+        setIsListening(false);
+      };
+
+      recognitionRef.current.onerror = (event) => {
+        console.warn('[Kindred] Speech recognition error:', event.error);
+        setIsListening(false);
+      };
+
+      recognitionRef.current.onend = () => {
+        setIsListening(false);
+      };
+    }
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.abort();
+      }
+    };
+  }, []);
+
+  const toggleListening = () => {
+    if (!recognitionRef.current) {
+      alert('Speech recognition is not supported in your browser. Try Chrome or Edge.');
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    } else {
+      stopSpeaking(); // Stop TTS while listening
+      recognitionRef.current.start();
+      setIsListening(true);
+    }
+  };
+
+  // Generate email summary
+  const generateEmailSummary = () => {
+    if (messages.length === 0) {
+      alert('No conversation to share yet. Start chatting first!');
+      return;
+    }
+
+    // Get last 5 exchanges for brevity
+    const recentMessages = messages.slice(-10);
+    const summary = recentMessages.map(m =>
+      `${m.role === 'user' ? 'Me' : 'Kindred'}: ${m.content.slice(0, 200)}${m.content.length > 200 ? '...' : ''}`
+    ).join('\n\n');
+
+    const subject = encodeURIComponent(`My Kindred Conversation - ${user?.type || 'Personality'} Insights`);
+    const body = encodeURIComponent(
+      `Here's a summary of my recent conversation with Kindred, my AI personality mentor:\n\n` +
+      `My Type: ${user?.type || 'Not set'} (${user?.profile?.name || 'Unknown'})\n` +
+      `People in my circle: ${people.map(p => `${p.name} (${p.type})`).join(', ') || 'None added'}\n\n` +
+      `--- Recent Conversation ---\n\n${summary}\n\n` +
+      `---\nTry Kindred: https://github.com/smhunt/kindred-app`
+    );
+
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
   };
   
   // Calculate group metrics
@@ -1098,11 +1199,15 @@ STYLE: Start with a punchy summary stat (e.g. "This is a highly extroverted grou
     try {
       const peopleContext = people.length > 0 ? `\n\nFAMILY/TEAM:\n${people.map(p => `- ${p.name} (${p.relationship}): ${p.type ? `${p.type} - ${p.profile?.name}` : 'Type not set'}`).join('\n')}` : '';
 
+      const gradeLevelInstruction = GRADE_LEVEL_PROMPTS[gradeLevel] || GRADE_LEVEL_PROMPTS.adult;
+
       const systemPrompt = `You are Kindred, a warm personality mentor.
 
 USER: ${user?.name || 'User'}, ${user?.type}-${user?.identity} (${user?.profile?.name})
 STRENGTHS: ${user?.profile?.strengths?.slice(0, 3).join(', ')}
 GROWTH: ${user?.profile?.weaknesses?.slice(0, 2).join(', ')}${peopleContext}
+
+COMMUNICATION LEVEL: ${gradeLevelInstruction}
 
 STYLE: Be warm but concise—2-3 paragraphs max. Use cognitive function shorthand (Ne-dom, Si-aux, etc.) when discussing personality dynamics—tooltips will explain these to users. One key insight per response. End with a question or suggestion.`;
 
@@ -1545,11 +1650,6 @@ STYLE: Be warm but concise—2-3 paragraphs max. Use cognitive function shorthan
   if (typeof window !== 'undefined') {
     window.testSuggestions = testSuggestionSystem;
   }
-      ]
-    });
-    
-    return suggestions;
-  };
 
   // Styles
   const s = {
@@ -2287,7 +2387,7 @@ STYLE: Be warm but concise—2-3 paragraphs max. Use cognitive function shorthan
                   style={{ background: '#F3F4F6', border: 'none', fontSize: '10px', color: '#9CA3AF', cursor: 'pointer', padding: '2px 6px', borderRadius: '4px' }}
                   title="View build log"
                 >
-                  v0.4
+                  v0.5
                 </button>
               </div>
               <p style={{ fontSize: '12px', color: '#6B7280', margin: 0 }}>
@@ -2683,8 +2783,31 @@ STYLE: Be warm but concise—2-3 paragraphs max. Use cognitive function shorthan
             </div>
           </div>
         )}
-        <div style={{ maxWidth: '900px', margin: '0 auto', display: 'flex', gap: '10px' }}>
+        <div style={{ maxWidth: '900px', margin: '0 auto', display: 'flex', gap: '10px', alignItems: 'center' }}>
           <input type="text" value={inputValue} onChange={e => setInputValue(e.target.value)} onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()} placeholder="Ask about personality, growth, relationships..." style={{ ...s.input, flex: 1 }} />
+          {/* Voice Input Button */}
+          <button
+            onClick={toggleListening}
+            style={{
+              ...s.btn,
+              background: isListening ? '#FEE2E2' : '#F3F4F6',
+              color: isListening ? '#DC2626' : '#374151',
+              padding: '10px 12px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              animation: isListening ? 'pulse 1s infinite' : 'none'
+            }}
+            title={isListening ? 'Stop listening' : 'Voice input'}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/>
+              <path d="M19 10v2a7 7 0 01-14 0v-2"/>
+              <line x1="12" y1="19" x2="12" y2="23"/>
+              <line x1="8" y1="23" x2="16" y2="23"/>
+            </svg>
+            {isListening && <span style={{ fontSize: '11px' }}>Listening...</span>}
+          </button>
           <button onClick={sendMessage} disabled={!inputValue.trim() || isLoading} style={{ ...s.btn, background: inputValue.trim() && !isLoading ? s.accent : '#E5E7EB', color: inputValue.trim() && !isLoading ? 'white' : '#9CA3AF', cursor: inputValue.trim() && !isLoading ? 'pointer' : 'not-allowed' }}>Send</button>
         </div>
       </div>
@@ -2799,10 +2922,10 @@ STYLE: Be warm but concise—2-3 paragraphs max. Use cognitive function shorthan
               {/* Reset */}
               <button
                 onClick={() => setVoiceSettings({ voiceIndex: -1, rate: 0.78, pitch: 1.0 })}
-                style={{ 
-                  ...s.btn, 
-                  width: '100%', 
-                  background: '#F3F4F6', 
+                style={{
+                  ...s.btn,
+                  width: '100%',
+                  background: '#F3F4F6',
                   color: '#374151',
                   padding: '10px',
                   fontSize: '13px',
@@ -2811,7 +2934,74 @@ STYLE: Be warm but concise—2-3 paragraphs max. Use cognitive function shorthan
               >
                 Reset Voice to Defaults
               </button>
-              
+
+              {/* Grade Level Slider */}
+              <div style={{ marginTop: '32px', borderTop: '1px solid #E5E7EB', paddingTop: '20px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '12px' }}>
+                  Response Complexity
+                </label>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {[
+                    { value: 'child', label: 'Child', emoji: '🧒', desc: 'Simple words, fun examples' },
+                    { value: 'teen', label: 'Teen', emoji: '🎒', desc: 'Casual, relatable' },
+                    { value: 'adult', label: 'Adult', emoji: '👔', desc: 'Professional, nuanced' },
+                    { value: 'senior', label: 'Senior', emoji: '🧓', desc: 'Clear, respectful' }
+                  ].map(level => (
+                    <button
+                      key={level.value}
+                      onClick={() => setGradeLevel(level.value)}
+                      style={{
+                        flex: '1 1 45%',
+                        padding: '12px 8px',
+                        borderRadius: '8px',
+                        border: gradeLevel === level.value ? `2px solid ${s.accent}` : '1px solid #E5E7EB',
+                        background: gradeLevel === level.value ? '#FEF3C7' : 'white',
+                        cursor: 'pointer',
+                        textAlign: 'center'
+                      }}
+                    >
+                      <div style={{ fontSize: '20px', marginBottom: '4px' }}>{level.emoji}</div>
+                      <div style={{ fontSize: '12px', fontWeight: '600', color: '#374151' }}>{level.label}</div>
+                      <div style={{ fontSize: '10px', color: '#9CA3AF' }}>{level.desc}</div>
+                    </button>
+                  ))}
+                </div>
+                <p style={{ fontSize: '11px', color: '#9CA3AF', marginTop: '8px' }}>
+                  Adjusts how Kindred explains personality concepts
+                </p>
+              </div>
+
+              {/* Share Conversation */}
+              <div style={{ marginTop: '24px', borderTop: '1px solid #E5E7EB', paddingTop: '20px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '12px' }}>
+                  Share Conversation
+                </label>
+                <button
+                  onClick={generateEmailSummary}
+                  style={{
+                    ...s.btn,
+                    width: '100%',
+                    background: '#DBEAFE',
+                    color: '#1D4ED8',
+                    padding: '12px',
+                    fontSize: '14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                    <polyline points="22,6 12,13 2,6"/>
+                  </svg>
+                  Email Summary
+                </button>
+                <p style={{ fontSize: '11px', color: '#9CA3AF', marginTop: '8px' }}>
+                  Opens your email client with a conversation summary
+                </p>
+              </div>
+
               {/* Session Info */}
               <div style={{ marginTop: '32px', borderTop: '1px solid #E5E7EB', paddingTop: '20px' }}>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '12px' }}>

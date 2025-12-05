@@ -4,28 +4,11 @@
 ---
 ## 🚀 HANDOFF INSTRUCTIONS FOR NEXT SESSION
 
-**Status:** Ready for Git setup and GitHub push
+**Status:** v0.5 deployed to GitHub
 
-**Location:** User downloading `kindred-app-v0.4.zip` to `/Users/seanhunt/Code/kindred-app/`
+**Repo:** https://github.com/smhunt/kindred-app
 
-**Next Steps (for Claude Code or next session):**
-```bash
-cd /Users/seanhunt/Code/kindred-app
-unzip kindred-app-v0.4.zip  # if not already done
-git init
-git add .
-git commit -m "Initial commit: Kindred v0.4 - AI personality mentor with MBTI survey, family/team management, Claude chat, TTS, smart suggestions, localStorage persistence"
-# Then create GitHub repo and push:
-# git remote add origin <github-url>
-# git push -u origin main
-```
-
-**Files in zip:**
-- `personality-mentor.jsx` - Main React app (3,108 lines)
-- `CHANGELOG.md` - This file with full session history
-- `BUILD-TRACKER-SKILL.md` - Reusable methodology doc
-
-**App Features (v0.4):**
+**App Features (v0.5):**
 - MBTI survey & 16 personality profiles
 - Family/team management with relationships
 - Claude API chat integration
@@ -35,6 +18,9 @@ git commit -m "Initial commit: Kindred v0.4 - AI personality mentor with MBTI su
 - Demo families (Simpsons, Office, Lakers)
 - Personality term tooltips
 - Build log modal with cost tracking
+- **NEW: Grade level slider** (child/teen/adult/senior)
+- **NEW: Voice input** (speech-to-text)
+- **NEW: Email summary sharing**
 
 ---
 **Skill**: Uses [BUILD-TRACKER-SKILL.md](./BUILD-TRACKER-SKILL.md) for session tracking + content generation
@@ -43,13 +29,13 @@ git commit -m "Initial commit: Kindred v0.4 - AI personality mentor with MBTI su
 ## TODO ROADMAP
 ---
 
-### Next Up (Session 5)
-- [ ] **Grade level slider** - Adjust response complexity (child/teen/adult/senior)
-- [ ] **Email summary link** - Share conversation summary via mailto: with brief content in URL
-- [ ] **Voice input** - Speech-to-text to talk back to mentor agent
-- [ ] **Verify tooltips** - Ensure personality term tooltips render correctly in chat
+### Completed (Session 5) ✓
+- [x] **Grade level slider** - Adjust response complexity (child/teen/adult/senior)
+- [x] **Email summary link** - Share conversation summary via mailto:
+- [x] **Voice input** - Speech-to-text using Web Speech API
+- [x] **Tooltips verified** - Personality term tooltips working in chat
 
-### Future Features
+### Future Features (Session 6+)
 - [ ] **Expand glossary** - More terms for grip, loop, shadow functions
 - [ ] **Profile tooltips** - Add hover explanations in profile descriptions
 - [ ] **Export/import** - Save session as JSON file for backup
@@ -71,7 +57,8 @@ git commit -m "Initial commit: Kindred v0.4 - AI personality mentor with MBTI su
 | 2 | ~350,000 | ~40,000 | ~$8.25 |
 | 3 | ~300,000 | ~35,000 | ~$7.13 |
 | 4 | ~200,000 | ~25,000 | ~$4.88 |
-| **Total** | **~1,250,000** | **~150,000** | **~$30.01** |
+| 5 | ~100,000 | ~15,000 | ~$2.00 |
+| **Total** | **~1,350,000** | **~165,000** | **~$32.01** |
 
 **Cost per metric:**
 - Per user message: **$0.75**
@@ -146,6 +133,22 @@ Style: Sean's voice - 30-year dev, skeptical of hype, respects craft.
 
 ---
 ## DEVELOPMENT CHANGELOG
+---
+
+## 2024-12-05 - Session 5 (Accessibility)
+**Duration**: ~15 min | **User messages**: 2
+
+### Added
+- **Grade level slider** - Adjust response complexity (child/teen/adult/senior) in Settings
+- **Voice input** - Speech-to-text using Web Speech API (Chrome/Edge)
+- **Email summary sharing** - Share conversation via mailto: link
+- **GRADE_LEVEL_PROMPTS** - System prompt adapts to selected complexity level
+
+### Changed
+- System prompt now includes communication level instructions
+- Version bump to v0.5
+- Settings drawer reorganized with new sections
+
 ---
 
 ## 2024-12-05 - Session 4 (12:15am - 12:45am)
